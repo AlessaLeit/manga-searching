@@ -1,10 +1,7 @@
+from fastapi import Query
 from pydantic import BaseModel, Field, StringConstraints
 from enum import Enum
-<<<<<<< Updated upstream
-from typing import Annotated
-=======
 from typing import Annotated, Optional
->>>>>>> Stashed changes
 
 Expression = Annotated[
     str,
@@ -15,30 +12,21 @@ Expression = Annotated[
 ]
 
 
-<<<<<<< Updated upstream
-class FilterOptions(Enum):
-    ...
-=======
 class FilterOptions(str, Enum):
     """Condições de aquisição aceitas como filtro. Espelha scraper.Condicao."""
     NOVO = "novo"
     USADO = "usado"
     ONLINE = "online"
->>>>>>> Stashed changes
 
 
 class SearchProduct(BaseModel):
     search_expression: Expression
-<<<<<<< Updated upstream
-    filters: list[FilterOptions] = Field(default_factory=list)
-
-
-class SearchResponse(BaseModel):
-    ...
-=======
-    # default literal (não default_factory): o Depends() da rota lê o default
-    # do campo diretamente e não resolve a factory. O pydantic copia o valor.
-    filters: list[FilterOptions] = []
+    # Query() explícito: sem ele o Depends() da rota não liga o parâmetro
+    # repetido (?filters=novo&filters=usado) e o filtro era ignorado em
+    # silêncio, buscando sempre todas as condições.
+    # Default literal (não default_factory) porque o Depends() lê o default do
+    # campo diretamente e não resolve a factory. O pydantic copia o valor.
+    filters: Annotated[list[FilterOptions], Query()] = []
 
 
 class ProductOption(BaseModel):
@@ -60,4 +48,3 @@ class SearchResponse(BaseModel):
     fontes_consultadas: list[str] = Field(default_factory=list)
     fontes_com_falha: list[str] = Field(default_factory=list)
     opcoes: list[ProductOption] = Field(default_factory=list)
->>>>>>> Stashed changes

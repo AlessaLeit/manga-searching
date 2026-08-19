@@ -21,6 +21,11 @@ def _coletar(query: str, condicoes: set[Condicao],
     com_falha: list[str] = []
 
     for fonte in FONTES:
+        # Fonte opcional desligada não é "consultada": omiti-la evita relatar
+        # uma busca mais ampla do que a que realmente aconteceu.
+        if not getattr(fonte, "habilitado", lambda: True)():
+            continue
+
         try:
             encontrados = fonte.buscar(query, condicoes, limite)
         except Exception:

@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "API (uvicorn --reload)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["backend.src.main:app", "--reload", "--port", "8000"],
+      // A raiz do repo: os imports sao "backend.src.*", entao e daqui que roda.
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
+      "jinja": true,
+      "console": "integratedTerminal"
+    }
+  ]
+}

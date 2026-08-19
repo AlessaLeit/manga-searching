@@ -1,7 +1,9 @@
 """Testes offline do parsing e da normalização (não fazem requisições)."""
-from src.scraper.models import Condicao
-from src.scraper.normalizer import _limpar_preco, e_relevante, normalizar
-from src.scraper.sources import estante_virtual, google_shopping
+import pytest
+
+from backend.src.scraper.models import Condicao
+from backend.src.scraper.normalizer import _limpar_preco, e_relevante, normalizar
+from backend.src.scraper.sources import estante_virtual, google_shopping
 
 HTML_CARD = """
 <div class="product-list__items">
@@ -53,6 +55,24 @@ def test_relevancia_descarta_resultado_aproximado():
     # A Estante Virtual devolve catálogo aleatório quando não acha nada.
     assert e_relevante("One Piece Vol. 25", "one piece")
     assert not e_relevante("Bzzz! O livro das onomatopeias", "one piece")
+    assert not e_relevante("Naruto Vol. 3", "one piece")
+
+
+@pytest.mark.parametrize("query", ["demon slayer 15", "demons slayer 15",
+                                   "demon slayer", "demons slayer"])
+def test_relevancia_tolera_plural_e_erro_de_digitacao(query):
+    """Regressão: 'demons slayer 15' zerava a busca por causa de um "s".
+
+    Só 'slayer' batia em 'Demon Slayer', 1 de 2 termos = 50%, abaixo do corte.
+    """
+    assert e_relevante("Demon Slayer - Kimetsu No Yaiba Vol. 15", query)
+
+
+def test_tolerancia_nao_derruba_o_filtro():
+    """A folga para digitação não pode deixar passar título irrelevante."""
+    assert not e_relevante("California Nevada Tourbook", "demons slayer")
+    assert not e_relevante("Attack on Titan Vol. 1", "demon slayer")
+    assert not e_relevante("Historias contadas aos pes da tenda", "xyzabc naoexiste")
 
 
 def test_normalizar_ordena_e_deixa_leitura_online_por_ultimo():
