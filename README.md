@@ -77,7 +77,7 @@ cd mangasearch
 
 4.  Execute o servidor:
     ```bash
-    flask run
+    uvicorn backend.src.main:app --reload
     ```
 
 ### 🌐 Front-end (React)

@@ -14,12 +14,13 @@ dependemos deles: procuramos o texto "R$" e subimos até o card que o contém.
 import os
 import re
 
+from .. import navegador
 from ..models import Condicao
 
 NOME = "Google Shopping"
 BUSCA = "https://www.google.com/search"
 
-TIMEOUT_MS = 20_000
+TIMEOUT_MS = navegador.TIMEOUT_MS
 _MARCADORES_USADO = ("usado", "usada", "seminovo", "semi-novo", "used")
 
 
@@ -109,15 +110,22 @@ def _recusar_cookies(page) -> None:
 def _limpar(itens: list[dict], condicoes: set[Condicao]) -> list[dict]:
     limpos = []
     for item in itens:
-        condicao = _condicao(item.pop("texto", ""))
+        # Só leitura: mutar `item` aqui faria uma segunda passada sobre os
+        # mesmos dados perder o texto e classificar tudo como novo.
+        condicao = _condicao(item.get("texto", ""))
         if condicao not in condicoes:
             continue
-        item["condicao"] = condicao
-        item["loja"] = item["loja"] or NOME
-        item["autor"] = None
-        item["ano"] = None
-        item["ofertas"] = None
-        limpos.append(item)
+
+        limpos.append({
+            "nome": item["nome"],
+            "preco": item["preco"],
+            "loja": item.get("loja") or NOME,
+            "condicao": condicao,
+            "link": item.get("link"),
+            "autor": None,
+            "ano": None,
+            "ofertas": None,
+        })
     return limpos
 
 
@@ -127,47 +135,30 @@ def buscar(query: str, condicoes: set[Condicao], limite: int = 20) -> list[dict]
     if not ({Condicao.NOVO, Condicao.USADO} & condicoes):
         return []
 
-    # Import tardio: sem Playwright instalado, a fonte se desliga em vez de
-    # quebrar o import de `sources` (e derrubar a API inteira).
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError:
-        return []
+    with navegador.pagina() as page:
+        page.goto(
+            f"{BUSCA}?tbm=shop&q={query}&hl=pt-BR&gl=br",
+            timeout=TIMEOUT_MS,
+            wait_until="domcontentloaded",
+        )
+        _recusar_cookies(page)
 
-    with sync_playwright() as p:
-        navegador = p.chromium.launch(headless=True)
+        # O Google desvia para /sorry/index quando classifica o acesso
+        # como robô. Aí não adianta esperar: nada vai renderizar.
+        if "/sorry/" in page.url:
+            raise BloqueadoPeloGoogle(
+                "Google exigiu verificação anti-robô (CAPTCHA) para esta busca"
+            )
+
+        # Espera os precos aparecerem; se nao vierem, devolve vazio.
         try:
-            page = navegador.new_page(
-                locale="pt-BR",
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                           "AppleWebKit/537.36 (KHTML, like Gecko) "
-                           "Chrome/126.0.0.0 Safari/537.36",
-            )
-            page.goto(
-                f"{BUSCA}?tbm=shop&q={query}&hl=pt-BR&gl=br",
+            page.wait_for_function(
+                "() => /R\\$\\s*[\\d.,]+/.test(document.body.innerText)",
                 timeout=TIMEOUT_MS,
-                wait_until="domcontentloaded",
             )
-            _recusar_cookies(page)
+        except Exception:
+            return []
 
-            # O Google desvia para /sorry/index quando classifica o acesso
-            # como robô. Aí não adianta esperar: nada vai renderizar.
-            if "/sorry/" in page.url:
-                raise BloqueadoPeloGoogle(
-                    "Google exigiu verificação anti-robô (CAPTCHA) para esta busca"
-                )
-
-            # Espera os precos aparecerem; se nao vierem, devolve vazio.
-            try:
-                page.wait_for_function(
-                    "() => /R\\$\\s*[\\d.,]+/.test(document.body.innerText)",
-                    timeout=TIMEOUT_MS,
-                )
-            except Exception:
-                return []
-
-            brutos = page.evaluate(_EXTRAI_JS, limite)
-        finally:
-            navegador.close()
+        brutos = page.evaluate(_EXTRAI_JS, limite)
 
     return _limpar(brutos, condicoes)

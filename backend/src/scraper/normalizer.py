@@ -1,6 +1,7 @@
 """Limpeza, filtro de relevância e ordenação dos itens crus das fontes."""
 import re
 import unicodedata
+from difflib import SequenceMatcher
 
 from .models import Condicao, Produto
 
@@ -8,6 +9,11 @@ from .models import Condicao, Produto
 # As lojas caem em busca aproximada quando não há resultado exato e devolvem
 # catálogo aleatório; sem esse corte, "xyzabc" retorna 40 livros irrelevantes.
 LIMIAR_RELEVANCIA = 0.6
+
+# Quanto dois termos precisam se parecer para contarem como o mesmo.
+# O usuário digita "demons slayer" e o título é "Demon Slayer": sem tolerância
+# a busca inteira era descartada por causa de um "s".
+LIMIAR_SEMELHANCA = 0.85
 
 
 def _sem_acento(texto: str) -> str:
@@ -41,12 +47,30 @@ def _limpar_preco(texto) -> float | None:
         return None
 
 
+def _sao_o_mesmo_termo(procurado: str, achado: str) -> bool:
+    """Compara dois termos tolerando plural e erro de digitação."""
+    if procurado == achado:
+        return True
+
+    # Cobre plural e prefixo ("demons"/"demon", "manga"/"mangas").
+    if min(len(procurado), len(achado)) >= 4 and (
+        procurado.startswith(achado) or achado.startswith(procurado)
+    ):
+        return True
+
+    return SequenceMatcher(None, procurado, achado).ratio() >= LIMIAR_SEMELHANCA
+
+
 def e_relevante(nome: str, query: str) -> bool:
     procurados = _tokens(query)
     if not procurados:
         return True
-    encontrados = procurados & _tokens(nome)
-    return len(encontrados) / len(procurados) >= LIMIAR_RELEVANCIA
+
+    no_titulo = _tokens(nome)
+    encontrados = sum(
+        any(_sao_o_mesmo_termo(p, t) for t in no_titulo) for p in procurados
+    )
+    return encontrados / len(procurados) >= LIMIAR_RELEVANCIA
 
 
 def _chave_ordem(p: Produto) -> tuple:

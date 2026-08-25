@@ -1,20 +1,20 @@
 import asyncio
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from typing import Annotated
 
-from src.schemas.search import (
+from backend.src.schemas.search import (
     SearchProduct,
     SearchResponse
 )
-from src.scraper import Condicao, TODAS_CONDICOES, buscar
+from backend.src.scraper import Condicao, TODAS_CONDICOES, buscar
 
 
 router = APIRouter(prefix="/search", tags=["Search"])
 
 
 @router.get('/', response_model=SearchResponse)
-async def search(product: Annotated[SearchProduct, Depends()]):
+async def search(product: Annotated[SearchProduct, Query()]):
 
     # sem filtro explícito, busca em todas as condições
     condicoes = {Condicao(f.value) for f in product.filters} or TODAS_CONDICOES

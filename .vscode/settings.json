@@ -1,0 +1,8 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/src/venv/Scripts/python.exe",
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["backend"],
+  // Os testes e a API importam como "backend.src.*": a raiz precisa estar no path.
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
