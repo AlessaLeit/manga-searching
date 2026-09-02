@@ -7,21 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.src.core.errors import registrar_tratadores_de_erro
 from backend.src.routes import search
-
-# O uvicorn não lê o .env sozinho; sem isto as variáveis de configuração
-# (fontes, CORS, timeout) ficariam sempre no valor padrão.
-load_dotenv()
-
-logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
-
-# Origens do front autorizadas a chamar esta API pelo navegador.
-# Padrão: porta do Vite (dev) e do container nginx.
-_ORIGENS_PADRAO = "http://localhost:5173,http://localhost:3000,http://localhost:8080"
-
-
-def origens_permitidas() -> list[str]:
-    bruto = os.getenv("CORS_ORIGINS", _ORIGENS_PADRAO)
-    return [origem.strip() for origem in bruto.split(",") if origem.strip()]
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI(
@@ -42,6 +28,15 @@ app.add_middleware(
 )
 
 registrar_tratadores_de_erro(app)
+
+# APENAS PARA RODAR EM FASE DE TESTES --> LIBERA TUDO
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # libera qualquer origem
+    allow_credentials=True,
+    allow_methods=["*"],  # libera todos os métodos (GET, POST, etc)
+    allow_headers=["*"],  # libera todos os headers
+)
 
 app.include_router(search.router)
 
