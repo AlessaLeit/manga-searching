@@ -15,7 +15,7 @@ load_dotenv()
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
 # Origens do front autorizadas a chamar esta API pelo navegador.
-# Padrão: porta do Vite (dev) e do container nginx.
+# Em fase de testes, CORS_ORIGINS=* no .env libera qualquer origem.
 _ORIGENS_PADRAO = "http://localhost:5173,http://localhost:3000,http://localhost:8080"
 
 
