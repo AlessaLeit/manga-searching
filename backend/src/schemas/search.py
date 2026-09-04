@@ -35,6 +35,7 @@ class ProductOption(BaseModel):
     loja: str
     preco: Optional[float] = None  # ausente na leitura online
     link: Optional[str] = None
+    imagem: Optional[str] = None  # URL da capa para exibir no card
     autor: Optional[str] = None
     ano: Optional[int] = None
     ofertas: Optional[int] = None

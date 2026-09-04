@@ -15,6 +15,7 @@ class Produto(BaseModel):
     loja: str
     preco: float | None = None  # None quando a opção é leitura online
     link: str | None = None
+    imagem: str | None = None  # URL da capa; None quando a fonte não traz
     autor: str | None = None
     ano: int | None = None
     ofertas: int | None = None  # quantos anúncios existem naquela condição

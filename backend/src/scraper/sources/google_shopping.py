@@ -77,11 +77,15 @@ _EXTRAI_JS = """
       l => l.length < 40 && !/R\\$|avalia|frete/i.test(l)
     );
 
+    const img = card.querySelector('img');
     itens.push({
       nome,
       preco: preco[0],
       loja: loja || null,
       link: no.href,
+      // O Google costuma servir a miniatura embutida (data:image/...), por
+      // isso currentSrc primeiro: é o que de fato foi carregado.
+      imagem: img ? (img.currentSrc || img.src) : null,
       texto,
     });
   }
@@ -122,6 +126,7 @@ def _limpar(itens: list[dict], condicoes: set[Condicao]) -> list[dict]:
             "loja": item.get("loja") or NOME,
             "condicao": condicao,
             "link": item.get("link"),
+            "imagem": item.get("imagem"),
             "autor": None,
             "ano": None,
             "ofertas": None,

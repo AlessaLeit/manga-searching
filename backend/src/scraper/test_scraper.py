@@ -43,6 +43,52 @@ def test_extrai_card_da_estante_virtual():
     )
 
 
+HTML_AGRUPADO = """
+<script>window.__INITIAL_STATE__={"SearchPage":{"parentSkus":[
+  {"name":"Mang\\u00e1 - Demon Slayer - Volume 15",
+   "productSlug":"/livro/manga-demon-slayer-volume-15-grp-OBW-5730-000",
+   "image":"https://static.estantevirtual.com.br/book/00/OBW-5730-000/capa.jpg"}
+]}};</script>
+<div class="product-list__items">
+  <div class="product-item product-list__item">
+    <div class="product-item__info">
+      <h2 class="product-item__name">Mangá - Demon Slayer - Volume 15</h2>
+      <div class="product-item__buy-area">
+        <span class="product-item__sale-price">R$&nbsp;40,00</span>
+      </div>
+    </div>
+    <img class="v-lazy-image"
+         src="https://estatico.estantevirtual.com.br/imagem/livro-loading.gif"/>
+  </div>
+</div>
+"""
+
+
+def test_produto_agrupado_recupera_capa_e_link():
+    """Regressão: card de produto agrupado não tem `<a>` nenhum.
+
+    Sem casar pelo nome, ele chegava ao usuário sem capa e — pior — sem link.
+    """
+    itens = estante_virtual._extrair(HTML_AGRUPADO, Condicao.USADO, "usado")
+
+    assert len(itens) == 1
+    item = itens[0]
+    assert item["imagem"] == (
+        "https://static.estantevirtual.com.br/book/00/OBW-5730-000/capa.jpg"
+    )
+    assert item["link"] == (
+        "https://www.estantevirtual.com.br"
+        "/livro/manga-demon-slayer-volume-15-grp-OBW-5730-000"
+    )
+
+
+def test_gif_de_carregamento_nao_vira_capa():
+    """A <img> do HTML cru é sempre o placeholder do lazy loading."""
+    html = HTML_AGRUPADO.replace("__INITIAL_STATE__=", "__OUTRO_ESTADO__=")
+
+    assert estante_virtual._extrair(html, Condicao.USADO, "usado")[0]["imagem"] is None
+
+
 def test_limpar_preco_formato_brasileiro():
     assert _limpar_preco("R$ 21,25") == 21.25
     assert _limpar_preco("R$ 1.234,56") == 1234.56
