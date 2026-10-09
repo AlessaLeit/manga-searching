@@ -1,9 +1,12 @@
 """Orquestrador da busca: consulta as fontes pré-definidas e consolida."""
+import logging
 from statistics import mean
 
 from .models import Condicao, Produto, ResultadoBusca
 from .normalizer import normalizar
 from .sources import FONTES
+
+logger = logging.getLogger(__name__)
 
 TODAS_CONDICOES = {Condicao.NOVO, Condicao.USADO, Condicao.ONLINE}
 
@@ -29,7 +32,11 @@ def _coletar(query: str, condicoes: set[Condicao],
         try:
             encontrados = fonte.buscar(query, condicoes, limite)
         except Exception:
-            # Uma loja fora do ar não pode derrubar a busca inteira.
+            # Uma loja fora do ar não pode derrubar a busca inteira. Mas o
+            # motivo precisa ficar no log: sem isto, a fonte só aparece em
+            # `fontes_com_falha` e não há como saber se foi timeout, bloqueio
+            # do site ou erro nosso.
+            logger.warning("fonte %s falhou", fonte.NOME, exc_info=True)
             com_falha.append(fonte.NOME)
             continue
 

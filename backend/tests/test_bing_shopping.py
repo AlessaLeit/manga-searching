@@ -72,6 +72,37 @@ def test_sem_loja_cai_para_a_propria_fonte():
     assert bing_shopping._limpar(brutos, {Condicao.NOVO})[0]["loja"] == bing_shopping.NOME
 
 
+def test_espera_exige_todas_as_capas():
+    """Regressão: a espera parava na primeira capa e extraía cedo demais.
+
+    Com ~8 de 20 miniaturas prontas no instante zero, a condição antiga já
+    era satisfeita e a maioria das capas se perdia.
+    """
+    assert bing_shopping.PROPORCAO_CAPAS == 1.0
+    # A condição conta cards com capa e compara com o total: exigir "alguma"
+    # (querySelector != null) é justamente o que causava o bug.
+    assert "cards.length" in bing_shopping._CAPAS_PRONTAS_JS
+    assert "filter" in bing_shopping._CAPAS_PRONTAS_JS
+
+
+def test_imagem_e_repassada_ao_normalizer():
+    brutos = [{"nome": "One Piece Vol. 3", "preco": "R$ 31,40", "loja": "Amazon BR",
+               "href": "", "imagem": "https://th.bing.com/th?id=OPHS.abc",
+               "texto": "One Piece Vol. 3"}]
+
+    assert bing_shopping._limpar(brutos, {Condicao.NOVO})[0]["imagem"] == (
+        "https://th.bing.com/th?id=OPHS.abc"
+    )
+
+
+def test_item_sem_capa_nao_quebra():
+    """Capa é opcional: a oferta vale pelo preço, mesmo sem miniatura."""
+    brutos = [{"nome": "One Piece Vol. 3", "preco": "R$ 31,40", "loja": "Amazon BR",
+               "href": "", "imagem": None, "texto": "One Piece Vol. 3"}]
+
+    assert bing_shopping._limpar(brutos, {Condicao.NOVO})[0]["imagem"] is None
+
+
 def test_leitura_online_nao_aciona_a_fonte():
     """Bing não tem leitura online: pedir só ONLINE não sobe navegador."""
     assert bing_shopping.buscar("one piece", {Condicao.ONLINE}) == []

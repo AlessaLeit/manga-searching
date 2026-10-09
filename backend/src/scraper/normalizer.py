@@ -73,6 +73,29 @@ def e_relevante(nome: str, query: str) -> bool:
     return encontrados / len(procurados) >= LIMIAR_RELEVANCIA
 
 
+def _limpar_url(valor, aceitar_embutida: bool = False) -> str | None:
+    """Só deixa passar URL que o navegador pode abrir com segurança.
+
+    As URLs vêm de HTML de terceiros. Um `javascript:...` num href, ou num
+    src de imagem, viraria execução de código na página do usuário — então
+    aceitamos apenas http/https (e data:image, que algumas lojas usam para
+    miniatura embutida).
+    """
+    if not isinstance(valor, str):
+        return None
+
+    url = valor.strip()
+    if url.startswith(("http://", "https://")):
+        return url
+    if aceitar_embutida and url.startswith("data:image/"):
+        return url
+    # Protocolo relativo ("//host/capa.jpg") é comum em HTML de loja.
+    if url.startswith("//"):
+        return f"https:{url}"
+
+    return None
+
+
 def _chave_ordem(p: Produto) -> tuple:
     # Itens com preço primeiro (mais barato antes); leitura online por último.
     return (p.preco is None, p.preco if p.preco is not None else 0.0)
@@ -104,7 +127,8 @@ def normalizar(itens: list[dict], query: str) -> list[Produto]:
             condicao=condicao,
             loja=item.get("loja") or "desconhecida",
             preco=preco,
-            link=item.get("link"),
+            link=_limpar_url(item.get("link")),
+            imagem=_limpar_url(item.get("imagem"), aceitar_embutida=True),
             autor=item.get("autor"),
             ano=item.get("ano"),
             ofertas=item.get("ofertas"),

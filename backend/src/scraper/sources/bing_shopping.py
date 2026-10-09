@@ -82,11 +82,21 @@ _EXTRAI_JS = """
     if (!nome || !preco) continue;
 
     const link = card.querySelector('a.br-offLink');
+
+    // Cada card tem DUAS <img>: a primeira é um data:image de espera, a
+    // segunda é a miniatura real (th.bing.com), preenchida só depois que o
+    // Bing carrega a imagem. Por isso varremos todas e exigimos http —
+    // pegar a primeira <img> devolveria sempre o placeholder.
+    const imagem = [...card.querySelectorAll('img')]
+      .map((i) => i.currentSrc || i.src || i.getAttribute('data-src'))
+      .find((u) => u && u.startsWith('http')) || null;
+
     itens.push({
       nome,
       preco,
       loja: texto(card, '.br-offSlrTxt'),
       href: link ? link.getAttribute('href') : null,
+      imagem,
       texto: card.innerText || '',
     });
   }
@@ -94,6 +104,26 @@ _EXTRAI_JS = """
   return itens;
 }
 """
+
+
+# Proporção de capas exigida antes de extrair. Medindo, as 20 miniaturas
+# ficam prontas em 1 a 4s, então dá para exigir todas; o timeout abaixo evita
+# ficar refém de um card com imagem quebrada.
+PROPORCAO_CAPAS = 1.0
+ESPERA_CAPAS_MS = 6_000
+
+_CAPAS_PRONTAS_JS = """
+() => {
+  const cards = [...document.querySelectorAll('div.br-gOffCard')];
+  if (!cards.length) return false;
+
+  const carregada = (card) => [...card.querySelectorAll('img')]
+    .some((i) => (i.currentSrc || i.src || '').startsWith('http'));
+
+  const prontas = cards.filter(carregada).length;
+  return prontas >= Math.ceil(cards.length * %s);
+}
+""" % PROPORCAO_CAPAS
 
 
 def _limpar(brutos: list[dict], condicoes: set[Condicao]) -> list[dict]:
@@ -111,6 +141,7 @@ def _limpar(brutos: list[dict], condicoes: set[Condicao]) -> list[dict]:
             "loja": bruto.get("loja") or NOME,
             "condicao": condicao,
             "link": link_real(bruto.get("href") or ""),
+            "imagem": bruto.get("imagem"),
             "autor": None,
             "ano": None,
             "ofertas": None,
@@ -135,6 +166,16 @@ def buscar(query: str, condicoes: set[Condicao], limite: int = 20) -> list[dict]
             page.wait_for_selector("div.br-gOffCard", timeout=10_000)
         except Exception:
             return []
+
+        # Os cards aparecem antes das miniaturas, e as capas entram em lotes:
+        # medindo, ~8 de 20 estão prontas no instante zero e todas em ~1s.
+        # Esperar só a primeira (o que fazíamos antes) extraía cedo demais e
+        # perdia a maioria das capas. Se estourar, seguimos com as que deram:
+        # capa é opcional, preço não.
+        try:
+            page.wait_for_function(_CAPAS_PRONTAS_JS, timeout=ESPERA_CAPAS_MS)
+        except Exception:
+            pass
 
         brutos = page.evaluate(_EXTRAI_JS, limite)
 
