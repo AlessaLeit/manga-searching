@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  backendmanga:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    # image: guilhermerikaczewski/manga-searching-backend:latest
+    container_name: backendmanga
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
