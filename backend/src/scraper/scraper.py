@@ -47,13 +47,15 @@ def _coletar(query: str, condicoes: set[Condicao],
 
 
 def buscar(query: str, condicoes: set[Condicao] | None = None,
-           limite: int = 40) -> ResultadoBusca:
+           limite: int = 40, *,
+           query_relevancia: str | None = None) -> ResultadoBusca:
     condicoes = condicoes or TODAS_CONDICOES
     itens, consultadas, com_falha = _coletar(query, condicoes, limite)
-    opcoes = normalizar(itens, query)[:limite]
+    expressao_relevancia = query if query_relevancia is None else query_relevancia
+    opcoes = normalizar(itens, expressao_relevancia)[:limite]
 
     return ResultadoBusca(
-        manga=query,
+        manga=expressao_relevancia,
         total_opcoes=len(opcoes),
         preco_minimo=_minimo(opcoes),
         preco_medio=_medio(opcoes),

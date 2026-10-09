@@ -1,5 +1,7 @@
 import asyncio
 import os
+import re
+import unicodedata
 
 from fastapi import APIRouter, Query
 from typing import Annotated
@@ -19,6 +21,18 @@ router = APIRouter(prefix="/search", tags=["Search"])
 TEMPO_LIMITE_SEGUNDOS = float(os.getenv("SEARCH_TIMEOUT_SECONDS", "45"))
 
 
+def _preparar_expressao_busca(expressao: str) -> str:
+    """Restringe a consulta a livros/mangás quando o usuário não o especificou."""
+    sem_acentos = "".join(
+        caractere
+        for caractere in unicodedata.normalize("NFKD", expressao.casefold())
+        if not unicodedata.combining(caractere)
+    )
+    if re.search(r"\b(?:mangas?|livros?)\b", sem_acentos):
+        return expressao
+    return f"livro manga {expressao}"
+
+
 @router.get(
     '/',
     response_model=SearchResponse,
@@ -31,11 +45,17 @@ TEMPO_LIMITE_SEGUNDOS = float(os.getenv("SEARCH_TIMEOUT_SECONDS", "45"))
 async def search(product: Annotated[SearchProduct, Query()]):
     # sem filtro explícito, busca em todas as condições
     condicoes = {Condicao(f.value) for f in product.filters} or TODAS_CONDICOES
+    expressao_busca = _preparar_expressao_busca(product.search_expression)
 
     # o scraper é síncrono (requests): roda fora do event loop.
     # Estourar o tempo levanta TimeoutError, que o tratador central vira 504.
     resultado = await asyncio.wait_for(
-        asyncio.to_thread(buscar, product.search_expression, condicoes),
+        asyncio.to_thread(
+            buscar,
+            expressao_busca,
+            condicoes,
+            query_relevancia=product.search_expression,
+        ),
         timeout=TEMPO_LIMITE_SEGUNDOS,
     )
 

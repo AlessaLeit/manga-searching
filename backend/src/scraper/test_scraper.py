@@ -3,6 +3,7 @@ import pytest
 
 from backend.src.scraper.models import Condicao
 from backend.src.scraper.normalizer import _limpar_preco, e_relevante, normalizar
+import backend.src.scraper.scraper as scraper_orchestrator
 from backend.src.scraper.sources import estante_virtual, google_shopping
 
 HTML_CARD = """
@@ -135,6 +136,31 @@ def test_normalizar_ordena_e_deixa_leitura_online_por_ultimo():
 
     assert [p.preco for p in produtos] == [20.0, 40.0, None]
     assert produtos[-1].condicao is Condicao.ONLINE
+
+
+def test_buscar_usa_termo_original_para_relevancia(monkeypatch):
+    capturado = {}
+
+    def coletar(query, condicoes, limite):
+        capturado["query_fonte"] = query
+        return [], [], []
+
+    def normalizar(itens, query):
+        capturado["query_relevancia"] = query
+        return []
+
+    monkeypatch.setattr(scraper_orchestrator, "_coletar", coletar)
+    monkeypatch.setattr(scraper_orchestrator, "normalizar", normalizar)
+
+    resultado = scraper_orchestrator.buscar(
+        "livro manga Berserk",
+        {Condicao.NOVO},
+        query_relevancia="Berserk",
+    )
+
+    assert capturado["query_fonte"] == "livro manga Berserk"
+    assert capturado["query_relevancia"] == "Berserk"
+    assert resultado.manga == "Berserk"
 
 
 def test_normalizar_descarta_compra_sem_preco_e_duplicatas():
