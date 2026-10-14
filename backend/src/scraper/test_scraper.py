@@ -98,6 +98,27 @@ def test_limpar_preco_formato_brasileiro():
     assert _limpar_preco("sob consulta") is None
 
 
+@pytest.mark.parametrize("bruto, esperado", [
+    ("R$ 1.300", 1300.0),
+    ("R$ 5.000", 5000.0),
+    ("R$ 12.345", 12345.0),
+    ("R$ 1.234.567", 1234567.0),
+])
+def test_ponto_sem_centavos_e_milhar(bruto, esperado):
+    """Regressão: a OLX anuncia "R$ 1.300" e isso virava R$ 1,30.
+
+    Um box de 33 volumes aparecia como a oferta mais barata da busca, no topo
+    da lista ordenada por preço, e puxava o `preco_minimo` junto.
+    """
+    assert _limpar_preco(bruto) == esperado
+
+
+def test_ponto_com_um_ou_dois_digitos_continua_decimal():
+    """Nem todo ponto é milhar: "34.90" é trinta e quatro e noventa."""
+    assert _limpar_preco("R$ 34.90") == 34.90
+    assert _limpar_preco("R$ 7.5") == 7.5
+
+
 def test_relevancia_descarta_resultado_aproximado():
     # A Estante Virtual devolve catálogo aleatório quando não acha nada.
     assert e_relevante("One Piece Vol. 25", "one piece")
