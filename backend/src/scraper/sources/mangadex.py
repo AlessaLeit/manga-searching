@@ -9,6 +9,11 @@ from ..models import Condicao
 NOME = "MangaDex"
 API = "https://api.mangadex.org/manga"
 SITE = "https://mangadex.org/title"
+
+# A API casa por título da obra, então o contexto "livro manga" que ajuda nas
+# lojas aqui atrapalha: "livro manga berserk" não é nenhuma obra e devolve
+# zero. O orquestrador lê esta marca e manda a expressão original.
+USA_QUERY_LIMPA = True
 CAPAS = "https://uploads.mangadex.org/covers"
 
 # A API pede um User-Agent identificável.
