@@ -12,6 +12,10 @@ class Condicao(str, Enum):
 class Produto(BaseModel):
     nome: str
     condicao: Condicao
+    # De onde a oferta veio (a fonte consultada) e quem está vendendo (a loja
+    # ou o anunciante). São perguntas diferentes: "Amazon BR" vem do Bing, e
+    # "panini" é um vendedor da Enjoei, apesar de parecer editora.
+    fonte: str
     loja: str
     preco: float | None = None  # None quando a opção é leitura online
     link: str | None = None

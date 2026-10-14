@@ -185,6 +185,24 @@ def test_buscar_usa_termo_original_para_relevancia(monkeypatch):
     assert resultado.manga == "Berserk"
 
 
+def test_normalizar_preserva_fonte_e_loja_separadas():
+    brutos = [{"nome": "One Piece Vol. 1", "preco": "R$ 20,00", "fonte": "Enjoei",
+               "loja": "panini", "condicao": Condicao.USADO, "link": "a"}]
+
+    produto = normalizar(brutos, "one piece")[0]
+
+    assert produto.fonte == "Enjoei"
+    assert produto.loja == "panini"
+
+
+def test_normalizar_sem_fonte_cai_para_a_loja():
+    """Quem chama o normalizador direto não passa pelo carimbo do orquestrador."""
+    brutos = [{"nome": "One Piece Vol. 1", "preco": "R$ 20,00",
+               "loja": "Estante Virtual", "condicao": Condicao.USADO, "link": "a"}]
+
+    assert normalizar(brutos, "one piece")[0].fonte == "Estante Virtual"
+
+
 def test_normalizar_descarta_compra_sem_preco_e_duplicatas():
     brutos = [
         {"nome": "One Piece Vol. 1", "preco": "R$ 20,00", "loja": "EV",

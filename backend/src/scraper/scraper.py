@@ -48,6 +48,12 @@ def _coletar(query: str, condicoes: set[Condicao], limite: int,
             continue
 
         consultadas.append(fonte.NOME)
+
+        # Carimbar aqui, e não em cada fonte, mantém o campo garantido: fonte
+        # nova nasce com ele preenchido sem precisar lembrar de nada.
+        for item in encontrados:
+            item["fonte"] = fonte.NOME
+
         itens.extend(encontrados)
 
     return itens, consultadas, com_falha

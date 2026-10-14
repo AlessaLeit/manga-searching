@@ -138,6 +138,9 @@ def normalizar(itens: list[dict], query: str) -> list[Produto]:
         produtos.append(Produto(
             nome=nome,
             condicao=condicao,
+            # O orquestrador carimba `fonte` ao coletar. O padrão cobre quem
+            # chama o normalizador direto, como os testes.
+            fonte=item.get("fonte") or item.get("loja") or "desconhecida",
             loja=item.get("loja") or "desconhecida",
             preco=preco,
             link=_limpar_url(item.get("link")),
