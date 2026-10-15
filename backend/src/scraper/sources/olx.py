@@ -37,9 +37,13 @@ _TEM_ANUNCIOS_JS = r"""
 
 
 def habilitado() -> bool:
-    """Ligada por padrão; desligue com OLX_ENABLED=0."""
-    return os.getenv("OLX_ENABLED", "1").strip().lower() not in {
-        "0", "false", "no", "nao", "não",
+    """Desligada por padrão; ligue com OLX_ENABLED=1.
+
+    Depende de Chromium, que não cabe com folga na VM de 1 GB. Ligue só onde
+    houver memória sobrando — ver "Fontes com navegador" no README.
+    """
+    return os.getenv("OLX_ENABLED", "").strip().lower() in {
+        "1", "true", "yes", "sim",
     }
 
 

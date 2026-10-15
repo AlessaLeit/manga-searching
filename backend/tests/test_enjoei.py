@@ -69,8 +69,13 @@ def test_rejeita_links_que_nao_sao_anuncios_da_enjoei():
     assert item["link"] is None
 
 
-def test_fonte_pode_ser_desligada(monkeypatch):
-    monkeypatch.setenv("ENJOEI_ENABLED", "0")
+def test_desligada_por_padrao_e_ligavel(monkeypatch):
+    """Fonte com navegador é opt-in: Chromium não cabe com folga em 1 GB."""
+    monkeypatch.delenv("ENJOEI_ENABLED", raising=False)
 
     assert not enjoei.habilitado()
+    # Desligada, não sobe navegador nem acessa a rede.
     assert enjoei.buscar("manga", {Condicao.USADO}) == []
+
+    monkeypatch.setenv("ENJOEI_ENABLED", "1")
+    assert enjoei.habilitado()

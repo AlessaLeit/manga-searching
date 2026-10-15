@@ -1,7 +1,13 @@
 """Qual expressão cada fonte recebe: prefixada ou original."""
 from backend.src.scraper import scraper
 from backend.src.scraper.models import Condicao
-from backend.src.scraper.sources import estante_virtual, mangadex
+from backend.src.scraper.sources import (
+    bing_shopping,
+    enjoei,
+    estante_virtual,
+    mangadex,
+    olx,
+)
 
 
 class _FonteFalsa:
@@ -18,10 +24,21 @@ class _FonteFalsa:
         return []
 
 
-def test_mangadex_pede_query_limpa_e_lojas_nao():
-    """O MangaDex casa por título: "livro manga X" não é obra nenhuma."""
+def test_catalogos_e_livrarias_pedem_a_query_limpa():
+    """O prefixo "livro manga" só ajuda quem vende de tudo.
+
+    MangaDex casa por título: "livro manga berserk" não é obra nenhuma.
+    A Estante Virtual é livraria, e o prefixo dilui a busca — medido com
+    "berserk", 0 de 40 resultados eram relevantes com ele, 40 de 40 sem.
+    """
     assert getattr(mangadex, "USA_QUERY_LIMPA", False)
-    assert not getattr(estante_virtual, "USA_QUERY_LIMPA", False)
+    assert getattr(estante_virtual, "USA_QUERY_LIMPA", False)
+
+
+def test_marketplaces_generalistas_mantem_o_prefixo():
+    """Em OLX, Enjoei e Bing o contexto evita devolver action figure."""
+    for fonte in (olx, enjoei, bing_shopping):
+        assert not getattr(fonte, "USA_QUERY_LIMPA", False), fonte.NOME
 
 
 def test_cada_fonte_recebe_a_expressao_que_pediu(monkeypatch):

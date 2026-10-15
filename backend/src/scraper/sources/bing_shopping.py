@@ -31,9 +31,13 @@ _MARCADORES_USADO = ("usado", "usada", "seminovo", "semi-novo", "used")
 
 
 def habilitado() -> bool:
-    """Ligada por padrão; desligue com BING_SHOPPING_ENABLED=0."""
-    return os.getenv("BING_SHOPPING_ENABLED", "1").strip().lower() not in {
-        "0", "false", "no", "nao", "não",
+    """Desligada por padrão; ligue com BING_SHOPPING_ENABLED=1.
+
+    Depende de Chromium, que não cabe com folga na VM de 1 GB. Ligue só onde
+    houver memória sobrando — ver "Fontes com navegador" no README.
+    """
+    return os.getenv("BING_SHOPPING_ENABLED", "").strip().lower() in {
+        "1", "true", "yes", "sim",
     }
 
 

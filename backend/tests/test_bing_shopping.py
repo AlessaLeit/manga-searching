@@ -31,12 +31,13 @@ def test_link_indecifravel_nao_quebra():
     assert bing_shopping.link_real("") is None
 
 
-def test_ligada_por_padrao_e_desligavel(monkeypatch):
+def test_desligada_por_padrao_e_ligavel(monkeypatch):
+    """Fonte com navegador é opt-in: Chromium não cabe com folga em 1 GB."""
     monkeypatch.delenv("BING_SHOPPING_ENABLED", raising=False)
-    assert bing_shopping.habilitado()
-
-    monkeypatch.setenv("BING_SHOPPING_ENABLED", "0")
     assert not bing_shopping.habilitado()
+
+    monkeypatch.setenv("BING_SHOPPING_ENABLED", "1")
+    assert bing_shopping.habilitado()
 
 
 def test_limpar_monta_item_completo():

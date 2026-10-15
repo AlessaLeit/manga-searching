@@ -92,9 +92,10 @@ def test_leitura_online_nao_aciona_a_fonte():
     assert olx.buscar("berserk", {Condicao.ONLINE}) == []
 
 
-def test_fonte_pode_ser_desligada(monkeypatch):
+def test_desligada_por_padrao_e_ligavel(monkeypatch):
+    """Fonte com navegador é opt-in: Chromium não cabe com folga em 1 GB."""
     monkeypatch.delenv("OLX_ENABLED", raising=False)
-    assert olx.habilitado()
-
-    monkeypatch.setenv("OLX_ENABLED", "0")
     assert not olx.habilitado()
+
+    monkeypatch.setenv("OLX_ENABLED", "1")
+    assert olx.habilitado()
