@@ -17,6 +17,11 @@ NOME = "Estante Virtual"
 BASE = "https://www.estantevirtual.com.br"
 BUSCA = f"{BASE}/busca"
 
+# A Estante Virtual é livraria: o contexto "livro manga" que ajuda nos
+# marketplaces generalistas aqui só dilui a busca. Medido com "berserk":
+# com o prefixo, 0 de 40 resultados eram relevantes; sem ele, 40 de 40.
+USA_QUERY_LIMPA = True
+
 _TIPO_POR_CONDICAO = {Condicao.NOVO: "novo", Condicao.USADO: "usado"}
 
 

@@ -29,10 +29,13 @@ Cada site exigiu uma estratégia diferente, conforme o obstáculo encontrado:
 | :--- | :--- | :--- |
 | **Estante Virtual** | HTTP + BeautifulSoup | novos e usados, com condição filtrada pela própria loja |
 | **MangaDex** | API pública JSON | leitura online (sem preço) |
-| **Bing Shopping** | Playwright | ofertas de lojas grandes (Amazon, Magazine Luiza) |
-| **Enjoei** | Playwright | anúncios de usados entre pessoas |
-| **OLX** | Playwright | classificados, com a condição declarada pelo anunciante |
+| **Bing Shopping** | Playwright | ofertas de lojas grandes (Amazon, Magazine Luiza) — *opt-in* |
+| **Enjoei** | Playwright | anúncios de usados entre pessoas — *opt-in* |
+| **OLX** | Playwright | classificados, com a condição declarada pelo anunciante — *opt-in* |
 | **Google Shopping** | Playwright | *desligada* — veja Limitações |
+
+As marcadas como *opt-in* dependem de Chromium e vêm desligadas — veja
+"Fontes com navegador" na configuração.
 
 Fonte que falha não derruba a busca: ela é reportada em `fontes_com_falha` e as
 demais respondem normalmente.
@@ -125,16 +128,24 @@ A API sobe em <http://127.0.0.1:8000>. A documentação interativa fica em
 
 | Variável | Padrão | Para que serve |
 | :--- | :--- | :--- |
-| `BING_SHOPPING_ENABLED` | `1` | Liga a fonte Bing Shopping |
-| `ENJOEI_ENABLED` | `1` | Liga a fonte Enjoei |
-| `OLX_ENABLED` | `1` | Liga a fonte OLX |
+| `BING_SHOPPING_ENABLED` | `0` | Liga a fonte Bing Shopping |
+| `ENJOEI_ENABLED` | `0` | Liga a fonte Enjoei |
+| `OLX_ENABLED` | `0` | Liga a fonte OLX |
 | `GOOGLE_SHOPPING_ENABLED` | `0` | Liga o Google Shopping (hoje bloqueado) |
 | `CORS_ORIGINS` | `localhost:5173,3000,8080` | Origens do front autorizadas; `*` libera todas |
 | `SEARCH_TIMEOUT_SECONDS` | `45` | Teto da busca inteira antes de responder 504 |
 | `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING` ou `ERROR` |
 
-As fontes que usam navegador custam segundos por busca. Desligá-las (`=0`)
-deixa a resposta mais rápida, com menos ofertas.
+### Fontes com navegador
+
+Bing, Enjoei e OLX dependem de Chromium e vêm **desligadas por padrão**. Cada
+busca sobe um navegador de ~250 MB, e a VM de produção tem 1 GB no total: com
+as três ligadas o servidor parou de responder, inclusive no `/health`.
+
+Ligue (`=1`) apenas onde houver memória sobrando — em desenvolvimento, por
+exemplo, onde elas mais que dobram o número de ofertas. Desligadas, a busca
+segue funcionando por Estante Virtual e MangaDex, que respondem por HTTP em
+segundos.
 
 ## 🔌 API
 
@@ -265,9 +276,9 @@ docker compose up --build
 
 A API fica em <http://localhost:8000>, lendo as variáveis do `.env`.
 
-> O Dockerfile não instala o Chromium do Playwright. No container, as fontes que
-> dependem de navegador (Bing, Enjoei, OLX) reportam falha; Estante Virtual e
-> MangaDex seguem funcionando.
+> O Dockerfile instala o Chromium, mas as fontes que dependem dele vêm
+> desligadas: numa VM de 1 GB elas não cabem. Estante Virtual e MangaDex
+> funcionam normalmente.
 
 ## 📁 Estrutura
 
