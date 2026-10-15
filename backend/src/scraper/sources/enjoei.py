@@ -15,6 +15,11 @@ from ..models import Condicao
 NOME = "Enjoei"
 BASE = "https://www.enjoei.com.br"
 
+# Sobe um Chromium: o orquestrador consulta estas por último e dentro
+# de uma sessão compartilhada, porque memória é o recurso escasso.
+USA_NAVEGADOR = True
+
+
 _MARCADORES_NOVO = re.compile(r"\b(?:novo|nova|novos|novas)\b")
 
 

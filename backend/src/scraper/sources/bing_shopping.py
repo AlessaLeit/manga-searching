@@ -27,6 +27,11 @@ from ..models import Condicao
 NOME = "Bing Shopping"
 BUSCA = "https://www.bing.com/shop"
 
+# Sobe um Chromium: o orquestrador consulta estas por último e dentro
+# de uma sessão compartilhada, porque memória é o recurso escasso.
+USA_NAVEGADOR = True
+
+
 _MARCADORES_USADO = ("usado", "usada", "seminovo", "semi-novo", "used")
 
 
