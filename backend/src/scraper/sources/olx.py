@@ -22,6 +22,11 @@ from ..models import Condicao
 NOME = "OLX"
 BUSCA = "https://www.olx.com.br/brasil"
 
+# Sobe um Chromium: o orquestrador consulta estas por último e dentro
+# de uma sessão compartilhada, porque memória é o recurso escasso.
+USA_NAVEGADOR = True
+
+
 # Trecho que inicia cada pedaço do payload do Next.js.
 _MARCA = 'self.__next_f.push([1,'
 _CHAVE_ANUNCIOS = '"ads":'

@@ -20,6 +20,16 @@ router = APIRouter(prefix="/search", tags=["Search"])
 # travada não pode deixar o cliente esperando para sempre.
 TEMPO_LIMITE_SEGUNDOS = float(os.getenv("SEARCH_TIMEOUT_SECONDS", "45"))
 
+# O scraper recebe um prazo menor que o da rota, de propósito: assim ele
+# devolve o que já tem — nem que seja só a Estante Virtual — antes de o
+# `wait_for` desistir.
+#
+# Isso importa porque `asyncio.wait_for` cancela a *espera*, não a thread:
+# num 504 o trabalho continuava rodando, com os navegadores dele abertos, e
+# cada tentativa do usuário deixava mais processos órfãos até a VM parar.
+MARGEM_PARA_RESPONDER = 5.0
+ORCAMENTO_DA_BUSCA = max(TEMPO_LIMITE_SEGUNDOS - MARGEM_PARA_RESPONDER, 5.0)
+
 
 def _preparar_expressao_busca(expressao: str) -> str:
     """Restringe a consulta a livros/mangás quando o usuário não o especificou."""
@@ -55,6 +65,7 @@ async def search(product: Annotated[SearchProduct, Query()]):
             expressao_busca,
             condicoes,
             query_relevancia=product.search_expression,
+            orcamento_segundos=ORCAMENTO_DA_BUSCA,
         ),
         timeout=TEMPO_LIMITE_SEGUNDOS,
     )

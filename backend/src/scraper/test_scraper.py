@@ -162,9 +162,10 @@ def test_normalizar_ordena_e_deixa_leitura_online_por_ultimo():
 def test_buscar_usa_termo_original_para_relevancia(monkeypatch):
     capturado = {}
 
-    def coletar(query, condicoes, limite, query_limpa=None):
+    def coletar(query, condicoes, limite, query_limpa=None, orcamento=None):
         capturado["query_fonte"] = query
         capturado["query_limpa"] = query_limpa
+        capturado["orcamento"] = orcamento
         return [], [], []
 
     def normalizar(itens, query):

@@ -20,6 +20,11 @@ from ..models import Condicao
 NOME = "Google Shopping"
 BUSCA = "https://www.google.com/search"
 
+# Sobe um Chromium: o orquestrador consulta estas por último e dentro
+# de uma sessão compartilhada, porque memória é o recurso escasso.
+USA_NAVEGADOR = True
+
+
 TIMEOUT_MS = navegador.TIMEOUT_MS
 _MARCADORES_USADO = ("usado", "usada", "seminovo", "semi-novo", "used")
 
