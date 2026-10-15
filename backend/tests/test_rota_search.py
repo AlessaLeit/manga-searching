@@ -17,6 +17,7 @@ def condicoes_recebidas(monkeypatch):
     def espiao(query, condicoes, *args, **kwargs):
         capturado["condicoes"] = {c.value for c in condicoes}
         capturado["query"] = query
+        capturado["query_relevancia"] = kwargs.get("query_relevancia")
         return ResultadoBusca(manga=query, total_opcoes=0)
 
     monkeypatch.setattr(rota, "buscar", espiao)
@@ -45,10 +46,23 @@ def test_sem_filtro_busca_todas_as_condicoes(condicoes_recebidas):
     assert condicoes_recebidas["condicoes"] == {c.value for c in Condicao}
 
 
-def test_query_e_repassada_sem_espacos(condicoes_recebidas):
+def test_query_sem_contexto_recebe_prefixo_e_remove_espacos(condicoes_recebidas):
     client.get("/search/", params={"search_expression": "  berserk  "})
 
-    assert condicoes_recebidas["query"] == "berserk"
+    assert condicoes_recebidas["query"] == "livro manga berserk"
+    assert condicoes_recebidas["query_relevancia"] == "berserk"
+
+
+@pytest.mark.parametrize("query", [
+    "manga berserk",
+    "Mangá Berserk",
+    "livro berserk",
+    "livros berserk",
+])
+def test_query_com_contexto_informado_nao_recebe_prefixo(condicoes_recebidas, query):
+    client.get("/search/", params={"search_expression": query})
+
+    assert condicoes_recebidas["query"] == query
 
 
 @pytest.mark.parametrize("params", [

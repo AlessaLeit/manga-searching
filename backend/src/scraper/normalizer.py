@@ -26,6 +26,11 @@ def _tokens(texto: str) -> set[str]:
     return {t for t in limpo.split() if len(t) >= 3}
 
 
+# "1.300", "12.345", "1.234.567" — grupos de 3 dígitos separados por ponto.
+# Um ponto seguido de 1 ou 2 dígitos ("34.90") continua sendo decimal.
+_MILHAR_SEM_CENTAVOS = re.compile(r"\d{1,3}(?:\.\d{3})+")
+
+
 def _limpar_preco(texto) -> float | None:
     """Converte "R$ 1.234,56" em 1234.56. Aceita valor já numérico."""
     if texto is None:
@@ -39,8 +44,16 @@ def _limpar_preco(texto) -> float | None:
         return None
 
     valor = m.group(0)
-    # pt-BR: ponto é milhar, vírgula é decimal.
-    valor = valor.replace(".", "").replace(",", ".") if "," in valor else valor
+
+    if "," in valor:
+        # pt-BR completo: ponto é milhar, vírgula é decimal ("1.234,56").
+        valor = valor.replace(".", "").replace(",", ".")
+    elif _MILHAR_SEM_CENTAVOS.fullmatch(valor):
+        # Sem centavos, o ponto ainda é milhar: a OLX anuncia "R$ 1.300" e
+        # "R$ 5.000". Lido como decimal, viravam R$ 1,30 e R$ 5,00 — e um box
+        # de 33 volumes aparecia como a oferta mais barata da busca.
+        valor = valor.replace(".", "")
+
     try:
         return float(valor)
     except ValueError:
@@ -125,6 +138,9 @@ def normalizar(itens: list[dict], query: str) -> list[Produto]:
         produtos.append(Produto(
             nome=nome,
             condicao=condicao,
+            # O orquestrador carimba `fonte` ao coletar. O padrão cobre quem
+            # chama o normalizador direto, como os testes.
+            fonte=item.get("fonte") or item.get("loja") or "desconhecida",
             loja=item.get("loja") or "desconhecida",
             preco=preco,
             link=_limpar_url(item.get("link")),

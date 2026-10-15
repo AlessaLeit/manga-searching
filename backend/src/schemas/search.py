@@ -74,7 +74,8 @@ class SearchProduct(BaseModel):
 class ProductOption(BaseModel):
     nome: str
     condicao: FilterOptions
-    loja: str
+    fonte: str  # de onde a oferta veio: "OLX", "Enjoei", "Bing Shopping"...
+    loja: str   # quem vende: "Amazon BR", "Estante Virtual", "alessandro"...
     preco: Optional[float] = None  # ausente na leitura online
     link: Optional[str] = None
     imagem: Optional[str] = None  # URL da capa para exibir no card

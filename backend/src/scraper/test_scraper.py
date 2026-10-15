@@ -3,6 +3,7 @@ import pytest
 
 from backend.src.scraper.models import Condicao
 from backend.src.scraper.normalizer import _limpar_preco, e_relevante, normalizar
+import backend.src.scraper.scraper as scraper_orchestrator
 from backend.src.scraper.sources import estante_virtual, google_shopping
 
 HTML_CARD = """
@@ -97,6 +98,27 @@ def test_limpar_preco_formato_brasileiro():
     assert _limpar_preco("sob consulta") is None
 
 
+@pytest.mark.parametrize("bruto, esperado", [
+    ("R$ 1.300", 1300.0),
+    ("R$ 5.000", 5000.0),
+    ("R$ 12.345", 12345.0),
+    ("R$ 1.234.567", 1234567.0),
+])
+def test_ponto_sem_centavos_e_milhar(bruto, esperado):
+    """Regressão: a OLX anuncia "R$ 1.300" e isso virava R$ 1,30.
+
+    Um box de 33 volumes aparecia como a oferta mais barata da busca, no topo
+    da lista ordenada por preço, e puxava o `preco_minimo` junto.
+    """
+    assert _limpar_preco(bruto) == esperado
+
+
+def test_ponto_com_um_ou_dois_digitos_continua_decimal():
+    """Nem todo ponto é milhar: "34.90" é trinta e quatro e noventa."""
+    assert _limpar_preco("R$ 34.90") == 34.90
+    assert _limpar_preco("R$ 7.5") == 7.5
+
+
 def test_relevancia_descarta_resultado_aproximado():
     # A Estante Virtual devolve catálogo aleatório quando não acha nada.
     assert e_relevante("One Piece Vol. 25", "one piece")
@@ -135,6 +157,50 @@ def test_normalizar_ordena_e_deixa_leitura_online_por_ultimo():
 
     assert [p.preco for p in produtos] == [20.0, 40.0, None]
     assert produtos[-1].condicao is Condicao.ONLINE
+
+
+def test_buscar_usa_termo_original_para_relevancia(monkeypatch):
+    capturado = {}
+
+    def coletar(query, condicoes, limite, query_limpa=None):
+        capturado["query_fonte"] = query
+        capturado["query_limpa"] = query_limpa
+        return [], [], []
+
+    def normalizar(itens, query):
+        capturado["query_relevancia"] = query
+        return []
+
+    monkeypatch.setattr(scraper_orchestrator, "_coletar", coletar)
+    monkeypatch.setattr(scraper_orchestrator, "normalizar", normalizar)
+
+    resultado = scraper_orchestrator.buscar(
+        "livro manga Berserk",
+        {Condicao.NOVO},
+        query_relevancia="Berserk",
+    )
+
+    assert capturado["query_fonte"] == "livro manga Berserk"
+    assert capturado["query_relevancia"] == "Berserk"
+    assert resultado.manga == "Berserk"
+
+
+def test_normalizar_preserva_fonte_e_loja_separadas():
+    brutos = [{"nome": "One Piece Vol. 1", "preco": "R$ 20,00", "fonte": "Enjoei",
+               "loja": "panini", "condicao": Condicao.USADO, "link": "a"}]
+
+    produto = normalizar(brutos, "one piece")[0]
+
+    assert produto.fonte == "Enjoei"
+    assert produto.loja == "panini"
+
+
+def test_normalizar_sem_fonte_cai_para_a_loja():
+    """Quem chama o normalizador direto não passa pelo carimbo do orquestrador."""
+    brutos = [{"nome": "One Piece Vol. 1", "preco": "R$ 20,00",
+               "loja": "Estante Virtual", "condicao": Condicao.USADO, "link": "a"}]
+
+    assert normalizar(brutos, "one piece")[0].fonte == "Estante Virtual"
 
 
 def test_normalizar_descarta_compra_sem_preco_e_duplicatas():

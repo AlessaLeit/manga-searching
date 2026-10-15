@@ -17,8 +17,9 @@ def buscar_bruto(query: str, condicoes: set[Condicao] | None = None,
     return _coletar(query, condicoes or TODAS_CONDICOES, limite)[0]
 
 
-def _coletar(query: str, condicoes: set[Condicao],
-             limite: int) -> tuple[list[dict], list[str], list[str]]:
+def _coletar(query: str, condicoes: set[Condicao], limite: int,
+             query_limpa: str | None = None
+             ) -> tuple[list[dict], list[str], list[str]]:
     itens: list[dict] = []
     consultadas: list[str] = []
     com_falha: list[str] = []
@@ -29,8 +30,14 @@ def _coletar(query: str, condicoes: set[Condicao],
         if not getattr(fonte, "habilitado", lambda: True)():
             continue
 
+        # Lojas se beneficiam do contexto "livro manga" na busca; catálogos
+        # que casam por título exato, não — para o MangaDex, "livro manga
+        # berserk" não é nenhuma obra e a busca voltava vazia.
+        usa_limpa = getattr(fonte, "USA_QUERY_LIMPA", False)
+        termo = query_limpa if (usa_limpa and query_limpa) else query
+
         try:
-            encontrados = fonte.buscar(query, condicoes, limite)
+            encontrados = fonte.buscar(termo, condicoes, limite)
         except Exception:
             # Uma loja fora do ar não pode derrubar a busca inteira. Mas o
             # motivo precisa ficar no log: sem isto, a fonte só aparece em
@@ -41,19 +48,29 @@ def _coletar(query: str, condicoes: set[Condicao],
             continue
 
         consultadas.append(fonte.NOME)
+
+        # Carimbar aqui, e não em cada fonte, mantém o campo garantido: fonte
+        # nova nasce com ele preenchido sem precisar lembrar de nada.
+        for item in encontrados:
+            item["fonte"] = fonte.NOME
+
         itens.extend(encontrados)
 
     return itens, consultadas, com_falha
 
 
 def buscar(query: str, condicoes: set[Condicao] | None = None,
-           limite: int = 40) -> ResultadoBusca:
+           limite: int = 40, *,
+           query_relevancia: str | None = None) -> ResultadoBusca:
     condicoes = condicoes or TODAS_CONDICOES
-    itens, consultadas, com_falha = _coletar(query, condicoes, limite)
-    opcoes = normalizar(itens, query)[:limite]
+    expressao_relevancia = query if query_relevancia is None else query_relevancia
+    itens, consultadas, com_falha = _coletar(
+        query, condicoes, limite, expressao_relevancia
+    )
+    opcoes = normalizar(itens, expressao_relevancia)[:limite]
 
     return ResultadoBusca(
-        manga=query,
+        manga=expressao_relevancia,
         total_opcoes=len(opcoes),
         preco_minimo=_minimo(opcoes),
         preco_medio=_medio(opcoes),
